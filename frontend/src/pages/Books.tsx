@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react';
+
 import { Link } from 'react-router-dom'
 import { Plus, Search, Filter, ArrowUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -23,81 +24,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
-// Mock data for books
-const booksData = [
-  {
-    id: 1,
-    title: "The Midnight Library",
-    author: "Matt Haig",
-    cover: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=387&auto=format&fit=crop",
-    price: 14.99,
-    category: "Fiction",
-    description: "Between life and death there is a library, and within that library, the shelves go on forever. Every book provides a chance to try another life you could have lived."
-  },
-  {
-    id: 2,
-    title: "Atomic Habits",
-    author: "James Clear",
-    cover: "https://images.unsplash.com/photo-1589998059171-988d887df646?q=80&w=1776&auto=format&fit=crop",
-    price: 12.99,
-    category: "Self-Help",
-    description: "No matter your goals, Atomic Habits offers a proven framework for improving--every day."
-  },
-  {
-    id: 3,
-    title: "Educated",
-    author: "Tara Westover",
-    cover: "https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=388&auto=format&fit=crop",
-    price: 13.99,
-    category: "Memoir",
-    description: "An unforgettable memoir about a young girl who, kept out of school, leaves her survivalist family and goes on to earn a PhD from Cambridge University."
-  },
-  {
-    id: 4,
-    title: "The Silent Patient",
-    author: "Alex Michaelides",
-    cover: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=387&auto=format&fit=crop",
-    price: 11.99,
-    category: "Thriller",
-    description: "Alicia Berenson's life is seemingly perfect. A famous painter married to an in-demand fashion photographer, she lives in a grand house in one of London's most desirable areas."
-  },
-  {
-    id: 5,
-    title: "Where the Crawdads Sing",
-    author: "Delia Owens",
-    cover: "https://images.unsplash.com/photo-1495640388908-05fa85288e61?q=80&w=387&auto=format&fit=crop",
-    price: 15.99,
-    category: "Fiction",
-    description: "For years, rumors of the 'Marsh Girl' have haunted Barkley Cove, a quiet town on the North Carolina coast."
-  },
-  {
-    id: 6,
-    title: "Becoming",
-    author: "Michelle Obama",
-    cover: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=387&auto=format&fit=crop",
-    price: 16.99,
-    category: "Biography",
-    description: "In her memoir, a work of deep reflection and mesmerizing storytelling, Michelle Obama invites readers into her world."
-  },
-  {
-    id: 7,
-    title: "The Alchemist",
-    author: "Paulo Coelho",
-    cover: "https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=387&auto=format&fit=crop",
-    price: 10.99,
-    category: "Fiction",
-    description: "Paulo Coelho's masterpiece tells the mystical story of Santiago, an Andalusian shepherd boy who yearns to travel in search of a worldly treasure."
-  },
-  {
-    id: 8,
-    title: "Sapiens",
-    author: "Yuval Noah Harari",
-    cover: "https://images.unsplash.com/photo-1589998059171-988d887df646?q=80&w=1776&auto=format&fit=crop",
-    price: 17.99,
-    category: "Non-Fiction",
-    description: "A brief history of humankind. How did our species succeed in the battle for dominance? Why did our foraging ancestors come together to create cities and kingdoms?"
-  }
-];
+
 
 const categories = [
   "All Categories",
@@ -113,7 +40,7 @@ const categories = [
 ];
 
 const Books = () => {
-  const [books, setBooks] = useState(booksData);
+  const [books, setBooks] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [sortBy, setSortBy] = useState('title');
@@ -126,6 +53,13 @@ const Books = () => {
     category: '',
     description: ''
   });
+
+  useEffect(() => {
+    fetch('http://localhost:5000/books') // your API endpoint
+      .then(res => res.json())
+      .then(data => setBooks(data))
+      .catch(err => console.error("Failed to fetch books:", err));
+  }, []);
 
   // Filter books based on search term and category
   const filteredBooks = books.filter(book => {
@@ -149,35 +83,61 @@ const Books = () => {
     return 0;
   });
 
-  const handleAddBook = () => {
-    // Validate form
-    if (!newBook.title || !newBook.author || !newBook.price || !newBook.category) {
-      alert('Please fill in all required fields');
-      return;
-    }
+  const handleDeleteBook = (id: string) => {
+  // Optional: Confirm before deleting
+    if (!window.confirm("Are you sure you want to delete this book?")) return;
 
-    // Create new book with default cover if not provided
-    const bookToAdd = {
-      ...newBook,
-      id: books.length + 1,
-      cover: newBook.cover || 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=387&auto=format&fit=crop',
-      price: parseFloat(newBook.price)
-    };
-
-    // Add book to list
-    setBooks([...books, bookToAdd]);
-    
-    // Reset form and close dialog
-    setNewBook({
-      title: '',
-      author: '',
-      cover: '',
-      price: '',
-      category: '',
-      description: ''
-    });
-    setIsAddBookOpen(false);
+    // Delete from backend (if backend supports DELETE)
+    fetch(`http://localhost:5000/books/${id}`, 
+      {method: 'DELETE'})
+      .then(res => {
+        if (!res.ok) throw new Error('Delete failed');
+      // Remove from frontend
+        setBooks(prevBooks => prevBooks.filter(book => book._id !== id));
+      })
+      .catch(err => console.error("Failed to delete book:", err));
   };
+
+
+  const handleAddBook = () => {
+  if (!newBook.title || !newBook.author || !newBook.price || !newBook.category) {
+    alert('Please fill in all required fields');
+    return;
+  }
+
+  const bookToAdd = {
+    ...newBook,
+    cover: newBook.cover || 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=387&auto=format&fit=crop',
+    price: parseFloat(newBook.price)
+  };
+
+  fetch('http://localhost:5000/books', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(bookToAdd)
+  })
+    .then(res => {
+      if (!res.ok) throw new Error('Failed to add book');
+      return res.json();
+    })
+    .then(addedBook => {
+      setBooks(prevBooks => [...prevBooks, addedBook]); // update frontend
+      setNewBook({
+        title: '',
+        author: '',
+        cover: '',
+        price: '',
+        category: '',
+        description: ''
+      });
+      setIsAddBookOpen(false); // close modal
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Error adding book");
+    });
+};
+
 
   return (
     <div className="container py-8">
@@ -345,11 +305,19 @@ const Books = () => {
               <h3 className="font-medium line-clamp-1">{book.title}</h3>
               <p className="text-sm text-muted-foreground mb-2">{book.author}</p>
               <div className="flex justify-between items-center">
+
                 <span className="font-bold text-book-leather">${book.price.toFixed(2)}</span>
+                <div className="flex gap-2">
                 <Button variant="ghost" size="sm" className="text-book-leather hover:text-book-gold">
                   Add to Cart
                 </Button>
+                 <Button variant="destructive" size="sm" onClick={() => handleDeleteBook(book._id)}>
+                   Delete 
+
+                </Button>
+                </div>
               </div>
+
             </CardContent>
           </Card>
         ))}
